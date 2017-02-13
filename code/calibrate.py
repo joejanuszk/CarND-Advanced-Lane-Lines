@@ -57,6 +57,10 @@ def get_image_with_shown_corners(img):
     ret, corners = get_corners_for_image(img)
     return cv2.drawChessboardCorners(img, (nx, ny), corners, ret)
 
+def load_calibration_data():
+    ret, mtx, dist, rvecs, tvecs = pickle.load(open(CAL_DATA_PICKLE, 'rb'))
+    return ret, mtx, dist, rvecs, tvecs
+
 if __name__ == '__main__':
     argv = sys.argv[1:] # get args other than filename
     try:
@@ -68,7 +72,7 @@ if __name__ == '__main__':
         if opt == '-c':
             generate_and_save_calibration_data()
         if opt == '-g':
-            ret, mtx, dist, rvecs, tvecs = pickle.load(open(CAL_DATA_PICKLE, 'rb'))
+            ret, mtx, dist, rvecs, tvecs = load_calibration_data()
             sample_img = cv2.imread('../camera_cal/calibration2.jpg')
             sample_dst = cv2.undistort(sample_img, mtx, dist, None, mtx)
             fig, ax_list = plt.subplots(1, 2)
