@@ -1,6 +1,18 @@
 import cv2
 import numpy as np
 
+ploty = np.linspace(0, 719, num=720)# to cover same y-range as image
+ym_per_pix = 30/720 # meters per pixel in y dimension
+xm_per_pix = 3.7/(930-370) # meters per pixel in x dimension
+# Code source: Advanced Lane Finding lesson - 35. Measuring Curvature
+def estimate_radius(leftx, lefty, rightx, righty):
+    y_eval = np.max(ploty)
+    left_fit_cr = np.polyfit(lefty*ym_per_pix, leftx*xm_per_pix, 2)
+    right_fit_cr = np.polyfit(righty*ym_per_pix, rightx*xm_per_pix, 2)
+    left_curverad = ((1 + (2*left_fit_cr[0]*y_eval*ym_per_pix + left_fit_cr[1])**2)**1.5) / np.absolute(2*left_fit_cr[0])
+    right_curverad = ((1 + (2*right_fit_cr[0]*y_eval*ym_per_pix + right_fit_cr[1])**2)**1.5) / np.absolute(2*right_fit_cr[0])
+    return left_curverad, right_curverad
+
 # Code source: Advanced Lane Finding lesson - 33. Finding the Lines
 def find_lines_via_histogram_peaks(binary_warped):
     # Take a histogram of the image
@@ -10,8 +22,9 @@ def find_lines_via_histogram_peaks(binary_warped):
     # Find the peak of the left and right halves of the histogram
     # These will be the starting point for the left and right lines
     midpoint = np.int(histogram.shape[0]/2)
-    leftx_base = np.argmax(histogram[:midpoint])
-    rightx_base = np.argmax(histogram[midpoint:]) + midpoint
+    check_limit = 100
+    leftx_base = np.argmax(histogram[check_limit:midpoint]) + check_limit
+    rightx_base = np.argmax(histogram[midpoint:-check_limit]) + midpoint
 
     # Choose the number of sliding windows
     nwindows = 9
@@ -69,7 +82,8 @@ def find_lines_via_histogram_peaks(binary_warped):
     # Fit a second order polynomial to each
     left_fit = np.polyfit(lefty, leftx, 2)
     right_fit = np.polyfit(righty, rightx, 2)
-    return left_fit, right_fit
+    left_curverad, right_curverad = estimate_radius(leftx, lefty, rightx, righty)
+    return left_fit, right_fit, left_curverad, right_curverad
 
 # Code source: Advanced Lane Finding lesson - 33. Finding the Lines
 def find_lines_via_polynomial_fit(binary_warped, left_fit, right_fit):
@@ -88,4 +102,5 @@ def find_lines_via_polynomial_fit(binary_warped, left_fit, right_fit):
     # Fit a second order polynomial to each
     left_fit = np.polyfit(lefty, leftx, 2)
     right_fit = np.polyfit(righty, rightx, 2)
-    return left_fit, right_fit
+    left_curverad, right_curverad = estimate_radius(leftx, lefty, rightx, righty)
+    return left_fit, right_fit, left_curverad, right_curverad
