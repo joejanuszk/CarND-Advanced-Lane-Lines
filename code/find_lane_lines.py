@@ -1,9 +1,9 @@
 import cv2
 import numpy as np
+from processing_utils import ym_per_pix, xm_per_pix
 
 ploty = np.linspace(0, 719, num=720)# to cover same y-range as image
-ym_per_pix = 30/720 # meters per pixel in y dimension
-xm_per_pix = 3.7/(930-370) # meters per pixel in x dimension
+
 # Code source: Advanced Lane Finding lesson - 35. Measuring Curvature
 def estimate_radius(leftx, lefty, rightx, righty):
     y_eval = np.max(ploty)

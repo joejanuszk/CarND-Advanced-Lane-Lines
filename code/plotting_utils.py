@@ -1,6 +1,39 @@
 import cv2
 import numpy as np
-from processing_utils import Minv
+from processing_utils import Minv, ym_per_pix, xm_per_pix
+
+def add_radius_to_image(image, curverad):
+    curverad_str = 'Radius of curvature: ' + str(int(curverad)) + 'm'
+    cv2.putText(image, curverad_str, (20, 80), cv2.FONT_HERSHEY_SIMPLEX, 2, (255, 255, 255), 3)
+    return image
+
+def evaluate_fit_at_point(fit, pt):
+    return fit[0] * (pt ** 2) + fit[1] * pt + fit[2]
+
+def get_center_offset(left_fit, right_fit):
+    left = evaluate_fit_at_point(left_fit, 719)
+    right = evaluate_fit_at_point(right_fit, 719)
+    img_center = 1280 / 2.
+    measured_center = np.mean([left, right])
+    print(left, right, measured_center, img_center)
+    offset = img_center - measured_center
+    offset_m = offset * xm_per_pix
+    print(offset_m)
+    return offset_m
+
+def get_offset_str(offset):
+    rounded_offset_str = str(abs(round(offset, 2)))
+    if offset > 0:
+        return 'Vehicle is ' + rounded_offset_str + 'm right of center'
+    if offset < 0:
+        return 'Vehicle is ' + rounded_offset_str + 'm left of center'
+    return 'Vehicle is centered'
+
+def add_center_offset_to_image(image, left_fit, right_fit):
+    center_offset = get_center_offset(left_fit, right_fit)
+    offset_str = get_offset_str(center_offset)
+    cv2.putText(image, offset_str, (20, 150), cv2.FONT_HERSHEY_SIMPLEX, 2, (255, 255, 255), 3)
+    return image
 
 # Code source: Advanced Lane Finding lesson - 33. Finding the Lines
 def get_plotting_values_for_fits(warped, left_fit, right_fit):
