@@ -19,5 +19,6 @@ img_result = add_lines_to_image(img_rgb,
 img_result = add_radius_to_image(img_result, curverad)
 img_result = add_center_offset_to_image(img_result, left_fit, right_fit)
 
+plt.title('Labeled output')
 plt.imshow(img_result)
 plt.show()
