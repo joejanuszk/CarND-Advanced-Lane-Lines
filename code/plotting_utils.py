@@ -1,25 +1,11 @@
 import cv2
 import numpy as np
-from processing_utils import Minv, ym_per_pix, xm_per_pix
+from processing_utils import Minv, evaluate_fit_at_point, get_center_offset
 
 def add_radius_to_image(image, curverad):
     curverad_str = 'Radius of curvature: ' + str(int(curverad)) + 'm'
     cv2.putText(image, curverad_str, (20, 80), cv2.FONT_HERSHEY_SIMPLEX, 2, (255, 255, 255), 3)
     return image
-
-def evaluate_fit_at_point(fit, pt):
-    return fit[0] * (pt ** 2) + fit[1] * pt + fit[2]
-
-def get_center_offset(left_fit, right_fit):
-    left = evaluate_fit_at_point(left_fit, 719)
-    right = evaluate_fit_at_point(right_fit, 719)
-    img_center = 1280 / 2.
-    measured_center = np.mean([left, right])
-    print(left, right, measured_center, img_center)
-    offset = img_center - measured_center
-    offset_m = offset * xm_per_pix
-    print(offset_m)
-    return offset_m
 
 def get_offset_str(offset):
     rounded_offset_str = str(abs(round(offset, 2)))
@@ -54,6 +40,8 @@ def add_lines_to_image(image, warped, left_fit, right_fit):
     pts = np.hstack((pts_left, pts_right))
     # Draw the lane onto the warped blank image
     cv2.fillPoly(color_warp, np.int_([pts]), (0,255, 0))
+    cv2.polylines(color_warp, np.int_([pts_left]), False, (255, 0, 0), 12)
+    cv2.polylines(color_warp, np.int_([pts_right]), False, (255, 0, 0), 12)
     # Warp the blank back to original image space using inverse perspective matrix (Minv)
     newwarp = cv2.warpPerspective(color_warp, Minv, (image.shape[1], image.shape[0])) 
     # Combine the result with the original image

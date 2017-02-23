@@ -2,10 +2,9 @@ import numpy as np
 from moviepy.editor import VideoFileClip
 from process_image import correct_distortion, warp_perspective, thresholded_image
 from find_lane_lines import *
-from plotting_utils import add_lines_to_image
+from plotting_utils import add_lines_to_image, add_radius_to_image, add_center_offset_to_image
 from collections import deque
 
-#max_radius = 20000 # 20km
 min_radius = 200 # 0.2km
 tries_before_refit = 4
 lane_pixel_gap = 930 - 370
@@ -15,9 +14,7 @@ min_gap = lane_pixel_gap - gap_margin
 
 def radius_exceeds_bounds(radius):
     """Check if a line's radius of curvature seems too small."""
-    #"""Check if a line's radius of curvature seems too large or small."""
     return radius < min_radius
-    #return radius > max_radius or radius < min_radius
 
 def get_x_for_fit(y, fit):
     """Compute x value for a fit given y."""
@@ -37,10 +34,11 @@ def misses_exceed_tries(misses):
     """Check if there have been too many misses since the last good match."""
     return misses['left'] > tries_before_refit or misses['right'] > tries_before_refit
 
-def add_fit_to_queue(fit, queue):
+def add_item_to_capped_queue(item, queue):
+    """Add an item to a queue with a capped length."""
     if len(queue) > 5:
         queue.popleft()
-    queue.append(fit)
+    queue.append(item)
 
 def get_average_fit(queue):
     fits = tuple(queue)
@@ -59,15 +57,22 @@ def get_mean_fits(left_fits, right_fits):
     right_fit_mean = np.array([pow_2_mean, pow_1_mean, right_fit_mean[2]])
     return left_fit_mean, right_fit_mean
 
+def get_mean_curverad(left_radii, right_radii):
+    """Average left and right curvatures for drawing."""
+    return np.mean(list(left_radii) + list(right_radii))
+
 # maintain state across function calls
 fits = {}
 misses = {}
 left_fits = deque()
 right_fits = deque()
+left_radii = deque()
+right_radii = deque()
 
 def process_frame(frame):
     thresh_img = thresholded_image(correct_distortion(frame))
     binary_warped = warp_perspective(thresh_img)
+    # clip the left wall, since it's difficult to filter the shadows otherwise
     binary_warped[:,:250] = 0
     if 'left' not in fits or 'right' not in fits:
         left_fit, right_fit, left_curverad, right_curverad \
@@ -76,6 +81,8 @@ def process_frame(frame):
         fits['right'] = right_fit
         misses['left'] = 0
         misses['right'] = 0
+        add_item_to_capped_queue(left_curverad, left_radii)
+        add_item_to_capped_queue(right_curverad, right_radii)
     else:
         left_fit = fits['left']
         right_fit = fits['right']
@@ -96,12 +103,14 @@ def process_frame(frame):
                     left_fit = fits['left']
                 else:
                     misses['left'] = 0
+                    add_item_to_capped_queue(left_curverad, left_radii)
                 if radius_exceeds_bounds(right_curverad):
                     print("right curve exceeds bounds")
                     misses['right'] += 1
                     right_fit = fits['right']
                 else:
                     misses['right'] = 0
+                    add_item_to_capped_queue(right_curverad, right_radii)
         except TypeError:
             print("polynomial fit failed")
             misses['left'] += 1
@@ -116,11 +125,16 @@ def process_frame(frame):
             fits['right'] = right_fit
             misses['left'] = 0
             misses['right'] = 0
-    add_fit_to_queue(left_fit, left_fits)
-    add_fit_to_queue(right_fit, right_fits)
+            add_item_to_capped_queue(left_curverad, left_radii)
+            add_item_to_capped_queue(right_curverad, right_radii)
+    add_item_to_capped_queue(left_fit, left_fits)
+    add_item_to_capped_queue(right_fit, right_fits)
     left_fit_mean = get_average_fit(left_fits)
     right_fit_mean = get_average_fit(right_fits)
+    curverad = get_mean_curverad(left_radii, right_radii)
     result = add_lines_to_image(frame, binary_warped, left_fit_mean, right_fit_mean)
+    result = add_radius_to_image(result, curverad)
+    result = add_center_offset_to_image(result, left_fit_mean, right_fit_mean)
     return result
 
 clip = VideoFileClip('../project_video.mp4')
