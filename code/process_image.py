@@ -6,6 +6,7 @@ from processing_utils import M
 ret, mtx, dist, rvecs, tvecs = load_calibration_data()
 
 def correct_distortion(img):
+    """Given a distorted image, correct for distortion."""
     return cv2.undistort(img, mtx, dist, None, mtx)
 
 def warp_perspective(img):

@@ -19,6 +19,7 @@ M = cv2.getPerspectiveTransform(src, dst)
 Minv = cv2.getPerspectiveTransform(dst, src)
 
 def evaluate_fit_at_point(fit, pt):
+    """Given a fit, evaluate it at a point."""
     return fit[0] * (pt ** 2) + fit[1] * pt + fit[2]
 
 def get_center_offset(left_fit, right_fit):

@@ -3,11 +3,13 @@ import numpy as np
 from processing_utils import Minv, evaluate_fit_at_point, get_center_offset
 
 def add_radius_to_image(image, curverad):
+    """Given an image and a radius of curvature, show the radius on the image."""
     curverad_str = 'Radius of curvature: ' + str(int(curverad)) + 'm'
     cv2.putText(image, curverad_str, (20, 80), cv2.FONT_HERSHEY_SIMPLEX, 2, (255, 255, 255), 3)
     return image
 
 def get_offset_str(offset):
+    """Given a numeric offset, get the string describing it for display on a frame."""
     rounded_offset_str = str(abs(round(offset, 2)))
     if offset > 0:
         return 'Vehicle is ' + rounded_offset_str + 'm right of center'
@@ -16,6 +18,7 @@ def get_offset_str(offset):
     return 'Vehicle is centered'
 
 def add_center_offset_to_image(image, left_fit, right_fit):
+    """Given an image and left and right line fits, add the center offset to the image."""
     center_offset = get_center_offset(left_fit, right_fit)
     offset_str = get_offset_str(center_offset)
     cv2.putText(image, offset_str, (20, 150), cv2.FONT_HERSHEY_SIMPLEX, 2, (255, 255, 255), 3)

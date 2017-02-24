@@ -29,6 +29,7 @@ def get_corners_for_image(img):
     return ret, corners
 
 def find_objpoints_and_imgpoints_for_camera(images):
+    """Given calibration images, determine image points and object points if possible."""
     objpoints = []
     imgpoints = []
     for image in images:
@@ -39,6 +40,7 @@ def find_objpoints_and_imgpoints_for_camera(images):
     return objpoints, imgpoints
 
 def get_images():
+    """Load calibration image data."""
     image_paths = glob.glob('../camera_cal/calibration*.jpg')
     images = []
     for image_path in image_paths:
