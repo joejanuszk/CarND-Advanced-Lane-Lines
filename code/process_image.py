@@ -10,20 +10,25 @@ def correct_distortion(img):
     return cv2.undistort(img, mtx, dist, None, mtx)
 
 def warp_perspective(img):
+    """Warp an image so it is seen directly from above."""
     return cv2.warpPerspective(img, M, (1280, 720), flags=cv2.INTER_LINEAR)
 
 def convert_to_grayscale(img):
+    """Convert an RGB image to grayscale."""
     return cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
 
 def scale_magnitude(values):
+    """Scale the result of an operation so image values range from 0 to 255."""
     return np.uint8(255 * values / np.max(values))
 
 def apply_threshold(values, thresh):
+    """Apply a threshold to an image."""
     binary_output = np.zeros_like(values)
     binary_output[(values >= thresh[0]) & (values <= thresh[1])] = 1
     return binary_output
 
 def abs_sobel_thresh(img, orient='x', thresh=(0, 255)):
+    """Apply the Sobel operator to an image over an axis and threshold accordingly."""
     gray = convert_to_grayscale(img)
     if orient == 'x':
         sobel = cv2.Sobel(gray, cv2.CV_64F, 1, 0)
@@ -34,6 +39,7 @@ def abs_sobel_thresh(img, orient='x', thresh=(0, 255)):
     return apply_threshold(scaled_sobel, thresh)
 
 def mag_thresh(img, sobel_kernel=3, thresh=(0, 255)):
+    """Get the magnitude of the Sobel operator with a given kernel size and threshold it."""
     gray = convert_to_grayscale(img)
     sobelx = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=sobel_kernel)
     sobely = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=sobel_kernel)
@@ -60,6 +66,7 @@ def mag_thresh_l(img, sobel_kernel=3, thresh=(0, 255)):
     return apply_threshold(scaled_mag, thresh)
 
 def hls_select_h(img, thresh=(0, 255)):
+    """Threshold an image according to H value in HLS space."""
     # 1) Convert to HLS color space
     hls = cv2.cvtColor(img, cv2.COLOR_RGB2HLS)
     # 2) Apply a threshold to the S channel
@@ -71,6 +78,7 @@ def hls_select_h(img, thresh=(0, 255)):
     return binary_output
 
 def hls_select_l(img, thresh=(0, 255)):
+    """Threshold an image according to L value in HLS space."""
     # 1) Convert to HLS color space
     hls = cv2.cvtColor(img, cv2.COLOR_RGB2HLS)
     # 2) Apply a threshold to the S channel
@@ -82,6 +90,7 @@ def hls_select_l(img, thresh=(0, 255)):
     return binary_output
 
 def hls_select_s(img, thresh=(0, 255)):
+    """Threshold an image according to S value in HLS space."""
     # 1) Convert to HLS color space
     hls = cv2.cvtColor(img, cv2.COLOR_RGB2HLS)
     # 2) Apply a threshold to the S channel
@@ -102,6 +111,7 @@ def dir_thresh(img, sobel_kernel=3, thresh=(0, np.pi/2)):
     return apply_threshold(dir_grad, thresh)
 
 def thresholded_image(img):
+    """Binary threshold an RGB image so lane lines are prominent and other features are not."""
     gradx = abs_sobel_thresh(img, orient='x', thresh=(20, 255))
     grady = abs_sobel_thresh(img, orient='y', thresh=(40, 255))
     mag_binary = mag_thresh(img, thresh=(45, 255), sobel_kernel=5)

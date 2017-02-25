@@ -74,6 +74,7 @@ def process_frame(frame):
     binary_warped = warp_perspective(thresh_img)
     # clip the left wall, since it's difficult to filter the shadows otherwise
     binary_warped[:,:250] = 0
+    # The first frame of the video must be processed via the histogram peaks method.
     if 'left' not in fits or 'right' not in fits:
         left_fit, right_fit, left_curverad, right_curverad \
             = find_lines_via_histogram_peaks(binary_warped)
@@ -83,12 +84,14 @@ def process_frame(frame):
         misses['right'] = 0
         add_item_to_capped_queue(left_curverad, left_radii)
         add_item_to_capped_queue(right_curverad, right_radii)
+    # Otherwise, try to find fits via the polynomial fit method using previous fits.
     else:
         left_fit = fits['left']
         right_fit = fits['right']
         try:
             left_fit, right_fit, left_curverad, right_curverad \
                  = find_lines_via_polynomial_fit(binary_warped, left_fit, right_fit)
+            # If the curves are too far apart at any point, treat it as a miss.
             if curves_bad_distance_apart(left_fit, right_fit):
                 print("curves bad distance")
                 misses['left'] += 1
@@ -97,6 +100,7 @@ def process_frame(frame):
                 right_fit = fits['right']
             else:
                 print(left_curverad, right_curverad)
+                # If a radius is a bad value, treat it as a miss.
                 if radius_exceeds_bounds(left_curverad):
                     print("left curve exceeds bounds")
                     misses['left'] += 1
@@ -111,12 +115,15 @@ def process_frame(frame):
                 else:
                     misses['right'] = 0
                     add_item_to_capped_queue(right_curverad, right_radii)
+        # The polynomial fit fails in some circumstances, particularly if
+        # line points are too sparse. Treat it as a miss.
         except TypeError:
             print("polynomial fit failed")
             misses['left'] += 1
             misses['right'] += 1
             left_fit = fits['left']
             right_fit = fits['right']
+        # After too many consecutive failures, 
         if misses_exceed_tries(misses):
             print("misses exceed tries; recomputing via histogram")
             left_fit, right_fit, left_curverad, right_curverad \
@@ -127,9 +134,12 @@ def process_frame(frame):
             misses['right'] = 0
             add_item_to_capped_queue(left_curverad, left_radii)
             add_item_to_capped_queue(right_curverad, right_radii)
+    # Cache this round's results for the next round
     add_item_to_capped_queue(left_fit, left_fits)
     add_item_to_capped_queue(right_fit, right_fits)
     left_fit_mean = get_average_fit(left_fits)
+    # Apply the polynomial fits, radius of curvative, and
+    # center offset results to the frame.
     right_fit_mean = get_average_fit(right_fits)
     curverad = get_mean_curverad(left_radii, right_radii)
     result = add_lines_to_image(frame, binary_warped, left_fit_mean, right_fit_mean)
